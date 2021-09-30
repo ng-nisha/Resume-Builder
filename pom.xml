@@ -111,19 +111,6 @@
     </plugins>
   </build>
 
-  <repositories>
-    <repository>
-      <id>homedepot-releases</id>
-      <url>https://maven.artifactory.homedepot.com/artifactory/libs-release</url>
-    </repository>
-    <repository>
-      <id>homedepot-snapshot</id>
-      <name>homedepot-snapshot</name>
-      <url>https://maven.artifactory.homedepot.com/artifactory/libs-snapshot</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
+
 
 </project>
