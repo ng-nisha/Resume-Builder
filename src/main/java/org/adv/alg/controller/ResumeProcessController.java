@@ -5,6 +5,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.adv.alg.service.ResumeProcessor;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -47,7 +49,8 @@ public class ResumeProcessController {
   })
   public ResponseEntity<String> processResume(
       @RequestParam("file") MultipartFile file,
-      @RequestParam("keyWord") String keyWord) throws IOException, OpenXML4JException, XmlException {
+      @RequestParam("keyWord") String keyWord)
+      throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
     String content = resumeProcessor.processResume(file, keyWord);
     return new ResponseEntity<>(content, HttpStatus.OK);
   }
