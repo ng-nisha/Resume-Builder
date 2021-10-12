@@ -109,13 +109,8 @@ public class ResumeProcessor {
     callableProcessors.add(new BoyerMooreSearch(textC, pat));
     List<Future<Integer>>  futures = executorService.invokeAll(callableProcessors);
 
-    for(int index=0;index<2;index++) {
-      Future<Integer> el = futures.get(index);
-      searchflag = el.get(2, TimeUnit.MINUTES);
-      if (searchflag==1||searchflag==2) {
-        break;
-      }
-    }
+    Future<Integer> el = futures.get(0);
+    searchflag = el.get(2, TimeUnit.MINUTES);
 
     String str1="Keyword not found ";
     String str3 = "Keyword found using BM Algorithm ";
