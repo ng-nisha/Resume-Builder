@@ -26,6 +26,7 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.xmlbeans.XmlException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import org.adv.alg.service.Levenshtein;
 
 @Component
 public class ResumeProcessor {
@@ -55,42 +56,43 @@ public class ResumeProcessor {
 
     callableProcessors.add(new BoyerMooreSearch(textC, pat));
     callableProcessors.add(new QuickSearch(textC, pat));
-    List<Future<Integer>>  futures = executorService.invokeAll(callableProcessors);
+    List<Future<Integer>> futures = executorService.invokeAll(callableProcessors);
 
 
-    for(int index=0;index<2;index++) {
+    for (int index = 0; index < 2; index++) {
       Future<Integer> el = futures.get(index);
       searchflag = el.get(2, TimeUnit.MINUTES);
-      if (searchflag==1||searchflag==2) {
-      break;
+      if (searchflag == 1 || searchflag == 2) {
+        break;
       }
     }
 
-    String str1="Keyword not found ";
-    String str2 = "Keyword found using Quick Search Algorithm ";
-    String str3 = "Keyword found using BM Algorithm ";
-    String str4 ="\nERROR : SearchFlag=";
+    String str1 = "Keyword Matched" + '\n' + "Resume fit for the profile";
+    String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
+    //*Maximum allowable mistakes is set to 3 *//
+    int maxMistakes = 3;
+    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 2).toString() + '\n' + "Resume is fit for the profile";
+
+    String str4 = "\nERROR : SearchFlag=";
 
 
-    if (searchflag == 0)
-      return str1;
-
-    else if (searchflag == 1)
-
-      return str2;
-
-    else if (searchflag == 2)
-
-      return str3;
-    else
-      return str4;
+    if (searchflag == 0) {
+      if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
+        return str2;
+      else
+        return str1;
+    }
+      else if (searchflag == 1 || searchflag ==2)
+        return str3;
+      else
+        return str4;
 
   }
 
   public String processResumeWithBMOnly(MultipartFile file, String keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
 
-    executorService = Executors.newFixedThreadPool(2);
+    executorService = Executors.newFixedThreadPool(1);
 
     Path path = FileUtil.getPathFromMultiPartFile(file);
     XWPFWordExtractor x = new XWPFWordExtractor(OPCPackage.open(path.toFile()));
@@ -112,12 +114,20 @@ public class ResumeProcessor {
     Future<Integer> el = futures.get(0);
     searchflag = el.get(2, TimeUnit.MINUTES);
 
-    String str1="Keyword not found ";
-    String str3 = "Keyword found using BM Algorithm ";
-    String str4 ="\nERROR : SearchFlag=";
+    String str1 = "Keyword Matched" + '\n' + "Resume fit for the profile";
+    String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
+    //*Maximum allowable mistakes is set to 3 *//
+    int maxMistakes = 3;
+    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 2).toString() + '\n' + "Resume is fit for the profile";
+
+    String str4 = "\nERROR : SearchFlag=";
+
 
     if (searchflag == 0)
-      return str1;
+      if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
+      return str2;
+      else
+        return str1;
 
     else if (searchflag == 2)
 
