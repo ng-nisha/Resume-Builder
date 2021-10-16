@@ -3,8 +3,9 @@
  * How to use:
  * Select text file(.docx) and keyword in Postman and send
  * e.g.
- * file: ResumeSample1.docx  keyWord: Experience
- * Result: "Keyword found using QS Algorithm"
+ * file: ResumeSample3.docx  keyWord: Experience
+ * Result: "Keyword is found"
+ *         "Resume fit for the profile"
  */
 package org.adv.alg.service;
 
@@ -35,14 +36,15 @@ public class ResumeProcessor {
 
   private ExecutorService executorService;
 
-  public String processResume(MultipartFile file, String keyWord)
+  //*** Proposed algorithm--Bidirectional BM and QS (BBQ) algorithm***//
+
+  public String processResumeWithBBQ(MultipartFile file, String keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
 
     executorService = Executors.newFixedThreadPool(2);
 
-    Path path = FileUtil.getPathFromMultiPartFile(file);
-    XWPFWordExtractor x = new XWPFWordExtractor(OPCPackage.open(path.toFile()));
-    String text = x.getText();
+    String text = FileUtil.getStringFromMultiPartFile(file);
+
     //if we want to ignore case sensitivity, lower case the strings
     text = text.toLowerCase();
     keyWord = keyWord.toLowerCase();
@@ -54,8 +56,8 @@ public class ResumeProcessor {
 
     List<Callable<Integer>> callableProcessors = new ArrayList<>();
 
-    callableProcessors.add(new BoyerMooreSearch(textC, pat));
-    callableProcessors.add(new QuickSearch(textC, pat));
+    callableProcessors.add(new BoyerMooreSearch(textC, pat));// method call for BM (left window)
+    callableProcessors.add(new QuickSearch(textC, pat));//method call for QS(right window)
     List<Future<Integer>> futures = executorService.invokeAll(callableProcessors);
 
 
@@ -69,9 +71,11 @@ public class ResumeProcessor {
 
     String str1 = "Keyword Matched" + '\n' + "Resume fit for the profile";
     String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
+
     //*Maximum allowable mistakes is set to 3 *//
+
     int maxMistakes = 3;
-    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 2).toString() + '\n' + "Resume is fit for the profile";
+    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 3).toString() + '\n' + "Resume is fit for the profile";
 
     String str4 = "\nERROR : SearchFlag=";
 
@@ -80,23 +84,24 @@ public class ResumeProcessor {
       if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
         return str2;
       else
-        return str1;
-    }
-      else if (searchflag == 1 || searchflag ==2)
         return str3;
-      else
-        return str4;
+    }
+    else if (searchflag == 1 || searchflag ==2)
+      return str1;
+    else
+      return str4;
 
   }
+
+// ** existing algorithm ---Boyer-Moore**//
 
   public String processResumeWithBMOnly(MultipartFile file, String keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
 
     executorService = Executors.newFixedThreadPool(1);
 
-    Path path = FileUtil.getPathFromMultiPartFile(file);
-    XWPFWordExtractor x = new XWPFWordExtractor(OPCPackage.open(path.toFile()));
-    String text = x.getText();
+    String text = FileUtil.getStringFromMultiPartFile(file);
+
     //if we want to ignore case sensitivity, lower case the strings
     text = text.toLowerCase();
     keyWord = keyWord.toLowerCase();
@@ -118,14 +123,15 @@ public class ResumeProcessor {
     String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
     //*Maximum allowable mistakes is set to 3 *//
     int maxMistakes = 3;
-    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 2).toString() + '\n' + "Resume is fit for the profile";
+    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 3).toString() + '\n' + "Resume is fit for the profile";
 
     String str4 = "\nERROR : SearchFlag=";
 
+// ****If keyword is not matched, searching for keyword with maximum of 3 mistakes using Levenshtein algorithm****//
 
     if (searchflag == 0)
       if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
-      return str2;
+        return str2;
       else
         return str1;
 

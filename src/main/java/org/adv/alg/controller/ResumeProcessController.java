@@ -25,28 +25,28 @@ public class ResumeProcessController {
   private ResumeProcessor resumeProcessor;
 
   public ResumeProcessController(
-      ObjectMapper objectMapper, ResumeProcessor resumeProcessor) {
+          ObjectMapper objectMapper, ResumeProcessor resumeProcessor) {
     this.objectMapper = objectMapper;
     this.resumeProcessor = resumeProcessor;
   }
 
   @PostMapping(
-      value = "/process",
-      produces = {MediaType.APPLICATION_JSON_VALUE},
-      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+          value = "/process",
+          produces = {MediaType.APPLICATION_JSON_VALUE},
+          consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
   @ApiOperation(
-      value = "process word format resume",
-      notes = "process word format resume")
+          value = "process word format resume",
+          notes = "process word format resume")
   @ApiResponses({
-      @ApiResponse(code = 200, message = "Successfully process word format resume"),
-      @ApiResponse(code = 422, message = "Invalid Input supplied or input parameters missing"),
-      @ApiResponse(code = 500, message = "There is a problem internally to process the resume")
+          @ApiResponse(code = 200, message = "Successfully process word format resume"),
+          @ApiResponse(code = 422, message = "Invalid Input supplied or input parameters missing"),
+          @ApiResponse(code = 500, message = "There is a problem internally to process the resume")
   })
-  public ResponseEntity<String> processResume(
-      @RequestParam("file") MultipartFile file,
-      @RequestParam("keyWord") String keyWord)
-      throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
-    String content = resumeProcessor.processResume(file, keyWord);
+  public ResponseEntity<String> processResumeWithBBQ(
+          @RequestParam("file") MultipartFile file,
+          @RequestParam("keyWord") String keyWord)
+          throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
+    String content = resumeProcessor.processResumeWithBBQ(file, keyWord);
     return new ResponseEntity<>(content, HttpStatus.OK);
   }
 
@@ -71,14 +71,14 @@ public class ResumeProcessController {
   }
 
   @PostMapping(
-      value = "/process2",
-      consumes = {MediaType.APPLICATION_JSON_VALUE},
-      produces = {MediaType.APPLICATION_JSON_VALUE})
+          value = "/process2",
+          consumes = {MediaType.APPLICATION_JSON_VALUE},
+          produces = {MediaType.APPLICATION_JSON_VALUE})
   @ApiOperation(value = "process word format resume")
   @ApiResponses({
-      @ApiResponse(code = 200, message = "Successfully process word format resume"),
-      @ApiResponse(code = 422, message = "Invalid Input supplied or input parameters missing"),
-      @ApiResponse(code = 500, message = "There is a problem internally to process the resume")
+          @ApiResponse(code = 200, message = "Successfully process word format resume"),
+          @ApiResponse(code = 422, message = "Invalid Input supplied or input parameters missing"),
+          @ApiResponse(code = 500, message = "There is a problem internally to process the resume")
   })
   public ResponseEntity<?> processResume2(@RequestBody String input) {
 
