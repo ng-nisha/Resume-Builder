@@ -27,18 +27,17 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.xmlbeans.XmlException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import org.adv.alg.service.Levenshtein;
+import org.adv.alg.service.FuzzySearch;
 
 @Component
 public class ResumeProcessor {
 
-  int searchflag= 0;
-
+  int searchflag = 0;
   private ExecutorService executorService;
 
   //*** Proposed algorithm--Bidirectional BM and QS (BBQ) algorithm***//
 
-  public String processResumeWithBBQ(MultipartFile file, String keyWord)
+  public String[] processResumeWithBBQ(MultipartFile file, String[] keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
 
     executorService = Executors.newFixedThreadPool(2);
@@ -47,103 +46,121 @@ public class ResumeProcessor {
 
     //if we want to ignore case sensitivity, lower case the strings
     text = text.toLowerCase();
-    keyWord = keyWord.toLowerCase();
+    String[] possibleAnswers= new String[keyWord.length];
+
     //remove whitespace in the text
-    String noSpaceStr = text.replaceAll("\\s", "");
+    String noSpaceStr = text.replaceAll("\\s+","");
+    String text_noSpaceStr=noSpaceStr.replaceAll("[.,+*]","");
 
-    char[] textC = noSpaceStr.toCharArray();
-    char[] pat = keyWord.toCharArray();
+    char[] textC = text_noSpaceStr.toCharArray();
 
-    List<Callable<Integer>> callableProcessors = new ArrayList<>();
+    for (int i=0;i<keyWord.length;i++) {
+      String pattern=keyWord[i];
+      //if we want to ignore case sensitivity, lower case the strings
+      pattern = pattern.toLowerCase();
+      //remove whitespace in the text
+      String pattern_nospace=pattern.replaceAll("\\s+", "");
+      char[] pat = pattern_nospace.toCharArray();
 
-    callableProcessors.add(new BoyerMooreSearch(textC, pat));// method call for BM (left window)
-    callableProcessors.add(new QuickSearch(textC, pat));//method call for QS(right window)
-    List<Future<Integer>> futures = executorService.invokeAll(callableProcessors);
+      List<Callable<Integer>> callableProcessors = new ArrayList<>();
+
+      callableProcessors.add(new BoyerMooreSearch(textC, pat));// method call for BM (left window)
+      callableProcessors.add(new QuickSearch(textC, pat));//method call for QS(right window)
+      List<Future<Integer>> futures = executorService.invokeAll(callableProcessors);
 
 
-    for (int index = 0; index < 2; index++) {
-      Future<Integer> el = futures.get(index);
-      searchflag = el.get(2, TimeUnit.MINUTES);
-      if (searchflag == 1 || searchflag == 2) {
-        break;
+      for (int index = 0; index < 2; index++) {
+        Future<Integer> el = futures.get(index);
+        searchflag = el.get(2, TimeUnit.MINUTES);
+        if (searchflag == 1 || searchflag == 2) {
+          break;
+        }
       }
-    }
 
-    String str1 = "Keyword Matched" + '\n' + "Resume fit for the profile";
-    String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
+      String str1 = "The Keyword " + "'" +keyWord[i]+ "'" + " is found in the resume" + "------" + "RESUME IS FIT FOR THE PROFILE";
+      String str2 = "The Keyword " + "'" + keyWord[i] +"'" + " is not found in resume" + "------" + "Resume IS NOT FIT FOR THE PROFILE";
 
-    //*Maximum allowable mistakes is set to 3 *//
+      //*Maximum allowable mistakes is set to 3 *//
 
-    int maxMistakes = 3;
-    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 3).toString() + '\n' + "Resume is fit for the profile";
+      int maxMistakes = 2;
+      String str3 = "Keyword " + "'" + keyWord[i]+ "'" + " is matched with character error" + ".... " + "Detected KeyWord is-" + FuzzySearch.fuzzySubstringSearch(text_noSpaceStr, pattern_nospace, 2).toString() + "--------" + "RESUME IS FIT FOR THE PROFILE";
 
-    String str4 = "\nERROR : SearchFlag=";
+      String str4 = "\nERROR : SearchFlag=";
 
 
-    if (searchflag == 0) {
-      if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
-        return str2;
+      if (searchflag == 0) {
+        if (FuzzySearch.fuzzySubstringSearch(text_noSpaceStr, pattern_nospace, maxMistakes) == "")
+          possibleAnswers[i]= str2;
+        else
+          possibleAnswers[i]= str3;
+      } else if (searchflag == 1 || searchflag == 2)
+        possibleAnswers[i]= str1;
       else
-        return str3;
+        possibleAnswers[i]= str4;
     }
-    else if (searchflag == 1 || searchflag ==2)
-      return str1;
-    else
-      return str4;
-
+    return possibleAnswers;
   }
 
 // ** existing algorithm ---Boyer-Moore**//
 
-  public String processResumeWithBMOnly(MultipartFile file, String keyWord)
+  public String[] processResumeWithBMOnly(MultipartFile file, String[] keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
 
     executorService = Executors.newFixedThreadPool(1);
 
     String text = FileUtil.getStringFromMultiPartFile(file);
-
     //if we want to ignore case sensitivity, lower case the strings
     text = text.toLowerCase();
-    keyWord = keyWord.toLowerCase();
     //remove whitespace in the text
     String noSpaceStr = text.replaceAll("\\s", "");
+    String text_noSpaceStr=noSpaceStr.replaceAll("[.,+*]","");
 
-    char[] textC = noSpaceStr.toCharArray();
-    char[] pat = keyWord.toCharArray();
+    String[] possibleAnswers= new String[keyWord.length];
+    for (int i=0;i<keyWord.length;i++) {
+      String pattern=keyWord[i];
+      //if we want to ignore case sensitivity, lower case the keyWord
+      pattern = pattern.toLowerCase();
+      //remove whitespace in the  pattern
+      String pattern_nospace=pattern.replaceAll("\\s", "");
 
-    List<Callable<Integer>> callableProcessors = new ArrayList<>();
+      char[] textC = text_noSpaceStr.toCharArray();
+      char[] pat = pattern_nospace.toCharArray();
 
-    callableProcessors.add(new BoyerMooreSearch(textC, pat));
-    List<Future<Integer>>  futures = executorService.invokeAll(callableProcessors);
+      List<Callable<Integer>> callableProcessors = new ArrayList<>();
 
-    Future<Integer> el = futures.get(0);
-    searchflag = el.get(2, TimeUnit.MINUTES);
+      callableProcessors.add(new BoyerMooreSearch(textC, pat));
+      List<Future<Integer>> futures = executorService.invokeAll(callableProcessors);
 
-    String str1 = "Keyword Matched" + '\n' + "Resume fit for the profile";
-    String str2 = "Keyword Not Matched" + '\n' + "Resume is not fit for the profile";
-    //*Maximum allowable mistakes is set to 3 *//
-    int maxMistakes = 3;
-    String str3 = "Keyword matched with character error" + '\n' + "The keyword detected in the resume -  " + Levenshtein.fuzzySubstringSearch(text, keyWord, 3).toString() + '\n' + "Resume is fit for the profile";
+      Future<Integer> el = futures.get(0);
+      searchflag = el.get(2, TimeUnit.MINUTES);
 
-    String str4 = "\nERROR : SearchFlag=";
+      String str1 = "The Keyword " + "'" +keyWord[i] + "'" + " is found in the resume" + "------" + "RESUME IS FIT FOR THE PROFILE";
+      String str2 = "The Keyword " + "'" +keyWord[i] +"'" + " is not found in resume" + "------" + "RESUME IS NOT FIT FOR THE PROFILE";
+
+      //*Maximum allowable mistakes is set to 3 *//
+
+      int maxMistakes = 2;
+      String str3 = "Keyword " + "'" + keyWord[i] + "'" + " is matched with character error" + ".... " + "Detected KeyWord is-" + "'"+FuzzySearch.fuzzySubstringSearch(text_noSpaceStr, pattern_nospace, 2).toString()+"'" + "--------" + "RESUME IS FIT FOR THE PROFILE";
+
+      String str4 = "\nERROR : SearchFlag=";
 
 // ****If keyword is not matched, searching for keyword with maximum of 3 mistakes using Levenshtein algorithm****//
 
-    if (searchflag == 0)
-      if (Levenshtein.fuzzySubstringSearch(text, keyWord, maxMistakes) == "")
-        return str2;
+      if (searchflag == 0) {
+        if (FuzzySearch.fuzzySubstringSearch(text_noSpaceStr, pattern_nospace, maxMistakes) == "")
+          possibleAnswers[i]= str2;
+        else
+          possibleAnswers[i]= str3;
+      } else if (searchflag == 1 || searchflag == 2)
+        possibleAnswers[i]= str1;
       else
-        return str1;
-
-    else if (searchflag == 2)
-
-      return str3;
-    else
-      return str4;
-
+        possibleAnswers[i]= str4;
+    }
+    return possibleAnswers;
   }
-}
 
+
+}
 
 
 

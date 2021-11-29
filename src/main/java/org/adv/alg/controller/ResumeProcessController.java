@@ -44,10 +44,10 @@ public class ResumeProcessController {
   })
   public ResponseEntity<String> processResumeWithBBQ(
           @RequestParam("file") MultipartFile file,
-          @RequestParam("keyWord") String keyWord)
+          @RequestParam("keyWord") String[] keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
-    String content = resumeProcessor.processResumeWithBBQ(file, keyWord);
-    return new ResponseEntity<>(content, HttpStatus.OK);
+    String[] content = resumeProcessor.processResumeWithBBQ(file, keyWord);
+    return new ResponseEntity(content, HttpStatus.OK);
   }
 
   @PostMapping(
@@ -64,10 +64,10 @@ public class ResumeProcessController {
   })
   public ResponseEntity<String> processWithBMOnly(
           @RequestParam("file") MultipartFile file,
-          @RequestParam("keyWord") String keyWord)
+          @RequestParam("keyWord") String[] keyWord)
           throws IOException, OpenXML4JException, XmlException, InterruptedException, ExecutionException, TimeoutException {
-    String content = resumeProcessor.processResumeWithBMOnly(file, keyWord);
-    return new ResponseEntity<>(content, HttpStatus.OK);
+    String[] content = resumeProcessor.processResumeWithBMOnly(file, keyWord);
+    return new ResponseEntity(content, HttpStatus.OK);
   }
 
   @PostMapping(
